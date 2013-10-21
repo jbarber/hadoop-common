@@ -198,10 +198,12 @@ class JobTrackerMonitor:
        This can be used for checking if a particular feature is available or not"""
     ver = hadoopVersion(self.__hadoopDir, self.__javaHome, self.__log)
     ret = False
-  
-    if (ver['major']!=None) and (int(ver['major']) >= int(expectedVersion['major'])) \
-      and (ver['minor']!=None) and (int(ver['minor']) >= int(expectedVersion['minor'])):
+
+    if (ver['major']!=None) and (int(ver['major']) > int(expectedVersion['major'])):
       ret = True
+    elif (ver['major']!=None) and (int(ver['major']) == int(expectedVersion['major'])):
+      if (ver['minor']!=None) and (int(ver['minor']) >= int(expectedVersion['minor'])):
+        ret = True
     return ret
 
   def __initStatusCommand(self, option="-list"):
