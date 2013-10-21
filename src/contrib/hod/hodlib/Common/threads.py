@@ -16,7 +16,7 @@
 
 import threading, time, os, sys, pprint
 
-from popen2 import Popen4, Popen3, MAXFD
+from subprocess import Popen, PIPE, STDOUT, MAXFD
 from signal import SIGTERM, SIGKILL
 
 class baseThread(threading.Thread):
@@ -113,40 +113,40 @@ class simpleCommand(baseThread):
             cmd = _Popen4Env(self.cmdString, env=self.__env)
         self.__pid = cmd.pid
 
-        self.stdin = cmd.tochild
+        self.stdin = cmd.stdin
         
         if self.__mode == 3:
-            self.stderr = cmd.childerr
+            self.stderr = cmd.stderr
 
-        while cmd.fromchild == None:
+        while cmd.stdout == None:
             time.sleep(1)
         
         if self.__buffer == True:
-            output = cmd.fromchild.readline()
+            output = cmd.stdout.readline()
             while output != '':
                 while not self.running.isSet():
                     if self.stopFlag.isSet():
                         break
                     time.sleep(1)
                 self.__outputBuffer.append(output)
-                output = cmd.fromchild.readline()
+                output = cmd.stdout.readline()
 
         elif self.__wait == False:
-            output = cmd.fromchild.readline()
+            output = cmd.stdout.readline()
             while output != '':
-                while not self.running.isSet():
+                while not self.stdout.isSet():
                     if self.stopFlag.isSet():
                         break
                     time.sleep(1)
                 print output,
                 if self.stopFlag.isSet():
                     break
-                output = cmd.fromchild.readline()
+                output = cmd.stdout.readline()
         else:
-            self.stdout = cmd.fromchild
+            self.stdout = cmd.stdout
 
         self.__status = cmd.poll()
-        while self.__status == -1:
+        while self.__status is None:
             while not self.running.isSet():
                 if self.stopFlag.isSet():
                     break
@@ -229,10 +229,10 @@ class simpleCommand(baseThread):
         
         self.stop()
         
-class _Popen3Env(Popen3):
+class _Popen3Env(Popen):
     def __init__(self, cmd, capturestderr=False, bufsize=-1, env=os.environ):
         self._env = env
-        Popen3.__init__(self, cmd, capturestderr, bufsize)
+        Popen.__init__(self, cmd, bufsize, stdin=PIPE, stderr=PIPE, stdout=PIPE, shell=True)
     
     def _run_child(self, cmd):
         if isinstance(cmd, basestring):
@@ -248,12 +248,12 @@ class _Popen3Env(Popen3):
         finally:
             os._exit(1)
             
-class _Popen4Env(_Popen3Env, Popen4):
+class _Popen4Env(_Popen3Env, Popen):
     childerr = None
 
     def __init__(self, cmd, bufsize=-1, env=os.environ):
         self._env = env
-        Popen4.__init__(self, cmd, bufsize)
+        Popen.__init__(self, cmd, bufsize, stdin=PIPE, stderr=STDOUT, stdout=PIPE, shell=True)
         
 class loop(baseThread):
     """ A simple extension of the threading.Thread class which continuously
