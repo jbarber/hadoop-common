@@ -268,6 +268,7 @@ class Hdfs(MasterSlave):
       raise ValueError, "Can't get namenode address"
 
     attrs['fs.default.name'] = nn
+    attrs['dfs.datanode.data.dir.perm'] = '700'
 
     if self.version < 16:
       if 'dfs.datanode.port' not in attrs:
