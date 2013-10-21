@@ -182,7 +182,7 @@ class baseConfig:
         self._configDef = configDef
         self._options = None
         self._mySections = []
-        self._dict = {}
+        self._hod_dict = {}
         self.configFile = None
         self.__originalDir = originalDir
 
@@ -196,10 +196,10 @@ class baseConfig:
         print_string = '';
         for section in self._mySections:
             print_string = "%s[%s]\n" % (print_string, section)
-            options = self._dict[section].keys()
+            options = self._hod_dict[section].keys()
             for option in options:
                 print_string = "%s%s = %s\n" % (print_string, option,
-                    self._dict[section][option])
+                    self._hod_dict[section][option])
 
             print_string = "%s\n" % (print_string)
 
@@ -210,17 +210,17 @@ class baseConfig:
     def __getitem__(self, section):
         """ Returns a dictionary of configuration name and values by section.
         """
-        return self._dict[section]
+        return self._hod_dict[section]
 
     def __setitem__(self, section, value):
-        self._dict[section] = value
+        self._hod_dict[section] = value
 
     def __iter__(self):
-        return iter(self._dict)
+        return iter(self._hod_dict)
 
     def has_key(self, section):
         status = False
-        if section in self._dict:
+        if section in self._hod_dict:
             status = True
             
         return status
@@ -228,10 +228,10 @@ class baseConfig:
     # Prints configuration error messages
     def var_error(self, section, option, *addData):
         errorStrings = []  
-        if not self._dict[section].has_key(option):
-          self._dict[section][option] = None
+        if not self._hod_dict[section].has_key(option):
+          self._hod_dict[section][option] = None
         errorStrings.append("%s: invalid '%s' specified in section %s (--%s.%s): %s" % (
-            errorPrefix, option, section, section, option, self._dict[section][option]))
+            errorPrefix, option, section, section, option, self._hod_dict[section][option]))
 
         if addData:
             errorStrings.append("%s: additional info: %s\n" % (errorPrefix,
@@ -252,38 +252,38 @@ class baseConfig:
             toString = self.__toString
             
         args = []
-        if isinstance(self._dict[section], dict):
-            for option in self._dict[section]:
+        if isinstance(self._hod_dict[section], dict):
+            for option in self._hod_dict[section]:
                 if section in self._configDef and \
                 option in self._configDef[section]:
                   if self._configDef[section][option]['type'] == 'bool':
-                    if self._dict[section][option] == 'True' or \
-                        self._dict[section][option] == True:
+                    if self._hod_dict[section][option] == 'True' or \
+                        self._hod_dict[section][option] == True:
                         args.append("--%s.%s" % (section, option))
                   else:
                     args.append("--%s.%s" % (section, option))
                     args.append(toString(
                            self._configDef[section][option]['type'], 
-                           self._dict[section][option]))
+                           self._hod_dict[section][option]))
         else:
             if section in self._configDef:
               if self._configDef[section][option]['type'] == 'bool':
-                if self._dict[section] == 'True' or \
-                    self._dict[section] == True:
+                if self._hod_dict[section] == 'True' or \
+                    self._hod_dict[section] == True:
                     args.append("--%s" % section)
               else:
-                if self._dict[section] != 'config':
+                if self._hod_dict[section] != 'config':
                   args.append("--%s" % section)
                   args.append(toString(self._configDef[section]['type'], 
-                                             self._dict[section]))
+                                             self._hod_dict[section]))
                     
         return args
                 
     def values(self):
-        return self._dict.values()
+        return self._hod_dict.values()
       
     def keys(self):
-        return self._dict.keys()
+        return self._hod_dict.keys()
     
     def get_args(self, exclude=None, section=None):
         """Retrieve a tuple of config arguments."""
@@ -292,7 +292,7 @@ class baseConfig:
         if section:
             args = self.__get_args(section)
         else:
-            for section in self._dict:
+            for section in self._hod_dict:
                 if exclude:
                     if not section in exclude:
                         args.extend(self.__get_args(section))
@@ -324,19 +324,19 @@ class baseConfig:
                 for option in self._configDef[section].keys():
                     configVarName = "%s.%s" % (section, option)
 
-                    if self._dict[section].has_key(option):
+                    if self._hod_dict[section].has_key(option):
                         if self._configDef[section][option].has_key('validate'):
                             if self._configDef[section][option]['validate']:
                                 # is the section.option needed to be validated?
                                 configValidator.add(configVarName,
                                     self._configDef[section][option]['type'],
-                                    self._dict[section][option])
+                                    self._hod_dict[section][option])
                             else:
                                 # If asked not to validate, just normalize
                                 self[section][option] = \
                                     configValidator.normalize(
                                     self._configDef[section][option]['type'], 
-                                    self._dict[section][option])
+                                    self._hod_dict[section][option])
                             if self._configDef[section][option]['default'] != \
                                 None:
                                 self._configDef[section][option]['default'] = \
@@ -353,7 +353,7 @@ class baseConfig:
                             # This should not happen. Just in case, take this as 'to be validated' case.
                             configValidator.add(configVarName,
                                 self._configDef[section][option]['type'],
-                                self._dict[section][option])
+                                self._hod_dict[section][option])
                     elif self._configDef[section][option]['req']:
                         statusMsgs.append("%s: %s.%s is not defined."
                              % (errorPrefix, section, option))
@@ -365,7 +365,7 @@ class baseConfig:
                 sectionsOptions = reDot.split(valueInfo['name'])
 
                 if valueInfo['isValid'] == 1:
-                    self._dict[sectionsOptions[0]][sectionsOptions[1]] = \
+                    self._hod_dict[sectionsOptions[0]][sectionsOptions[1]] = \
                         valueInfo['normalized']
                 else:
                     if valueInfo['errorData']:
@@ -460,9 +460,9 @@ class config(SafeConfigParser, baseConfig):
 
         for section in self._mySections:
             items = self.items(section)
-            self._dict[section] = {}
+            self._hod_dict[section] = {}
 
-            # First fill self._dict with whatever is given in hodrc.
+            # First fill self._hod_dict with whatever is given in hodrc.
             # Going by this, options given at the command line either override
             # options in hodrc, or get appended to the list, like for
             # hod.client-params. Note that after this dict has _only_ hodrc
@@ -473,7 +473,7 @@ class config(SafeConfigParser, baseConfig):
                 #  beginning of the line, :(
                 newValue = reCommentHack.sub("", keyValuePair[1])
                 newValue = reCommentNewline.sub("", newValue)
-                self._dict[section][keyValuePair[0]] = newValue
+                self._hod_dict[section][keyValuePair[0]] = newValue
             # end of filling with options given in hodrc
             # now start filling in command line options
             if self._options:    
@@ -499,10 +499,10 @@ class config(SafeConfigParser, baseConfig):
                               overwrite = False
                            else: overwrite = True
 
-                           # Append to the current list of values in self._dict
-                           if not self._dict[section].has_key(option):
-                             self._dict[section][option] = ""
-                           dictOpts = reKeyValList.split(self._dict[section][option])
+                           # Append to the current list of values in self._hod_dict
+                           if not self._hod_dict[section].has_key(option):
+                             self._hod_dict[section][option] = ""
+                           dictOpts = reKeyValList.split(self._hod_dict[section][option])
                            dictOptsKeyVals = {}
                            for opt in dictOpts:
                               if opt != '':
@@ -538,22 +538,22 @@ class config(SafeConfigParser, baseConfig):
                                   dictOptsKeyVals[key] = val
                               else: dictOptsKeyVals[key] = val
                               
-                           self._dict[section][option] = ""
+                           self._hod_dict[section][option] = ""
                            for key in dictOptsKeyVals:
-                              if self._dict[section][option] == "":
+                              if self._hod_dict[section][option] == "":
                                 if dictOptsKeyVals[key]:
-                                  self._dict[section][option] = key + "=" + \
+                                  self._hod_dict[section][option] = key + "=" + \
                                     dictOptsKeyVals[key]
                                 else: #invalid option. let config.verify catch
-                                  self._dict[section][option] = key
+                                  self._hod_dict[section][option] = key
                               else:
                                 if dictOptsKeyVals[key]:
-                                  self._dict[section][option] = \
-                                    self._dict[section][option] + "," + key + \
+                                  self._hod_dict[section][option] = \
+                                    self._hod_dict[section][option] + "," + key + \
                                       "=" + dictOptsKeyVals[key]
                                 else:  #invalid option. let config.verify catch
-                                  self._dict[section][option] = \
-                                    self._dict[section][option] + "," + key
+                                  self._hod_dict[section][option] = \
+                                    self._hod_dict[section][option] + "," + key
 
                         else:
                              # for rest of the options, that don't need
@@ -562,15 +562,15 @@ class config(SafeConfigParser, baseConfig):
                             # dict    = hodrc opts only
                             # only non default opts can overwrite any opt
                             # currently in dict
-                           if not self._dict[section].has_key(option):
+                           if not self._hod_dict[section].has_key(option):
                               # options not mentioned in hodrc
-                              self._dict[section][option] = \
+                              self._hod_dict[section][option] = \
                                                self._options[section][option]
                            elif self._configDef[section][option]['default'] != \
                                                self._options[section][option]:
                               # option mentioned in hodrc but user has given a
                               # non-default option
-                              self._dict[section][option] = \
+                              self._hod_dict[section][option] = \
                                                self._options[section][option]
 
     ## UNUSED METHOD
@@ -999,12 +999,12 @@ class options(OptionParser, baseConfig):
                     
     def __build_dict(self):
         if self.__withConfig:
-            self._dict['config'] = str(getattr(self.__parsedOptions, 'config'))
+            self._hod_dict['config'] = str(getattr(self.__parsedOptions, 'config'))
         for compoundOption in dir(self.__parsedOptions):
             if compoundOption in self.__compoundOpts:
                 (section, option) = self.__split_compound(compoundOption)
-                if not self._dict.has_key(section):
-                    self._dict[section] = {}
+                if not self._hod_dict.has_key(section):
+                    self._hod_dict[section] = {}
                 
                 if getattr(self.__parsedOptions, compoundOption):
                     _attr = getattr(self.__parsedOptions, compoundOption)
@@ -1014,17 +1014,17 @@ class options(OptionParser, baseConfig):
                     if type(_attr) == type([]):
                       import string
                       _attr = string.join(_attr,',')
-                    self._dict[section][option] = _attr
+                    self._hod_dict[section][option] = _attr
                     
         for section in self._configDef:
             for option in self._configDef[section]: 
                 if self._configDef[section][option]['type'] == 'bool':
                     compoundOption = self.__splice_compound(section, option)
-                    if not self._dict.has_key(section):
-                        self._dict[section] = {}
+                    if not self._hod_dict.has_key(section):
+                        self._hod_dict[section] = {}
                     
-                    if option not in self._dict[section]:
-                        self._dict[section][option] = False
+                    if option not in self._hod_dict[section]:
+                        self._hod_dict[section][option] = False
  
     def __set_display_groups(self):
         if not '--verbose-help' in sys.argv:
